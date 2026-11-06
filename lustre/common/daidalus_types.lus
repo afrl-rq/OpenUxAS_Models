@@ -1,0 +1,114 @@
+-- daidalus_types.lus
+
+type resolution = enum {
+    --abstraction of finding an acceptable action
+    acceptable_action,
+
+    --abstraction of failing to find an acceptable action or a revert behavior
+    --due to improper configuration
+    improperly_configured,
+
+    --abstraction of doing a fallback behavior as a result of not finding an
+    --acceptable behavior
+    revert_behavior
+};
+
+type quality = enum {
+    --resolution via acceptable action in altitude
+    divert_altitude_successful,
+
+    --resolution via acceptable action in heading
+    divert_heading_successful,
+
+    --resolution via acceptable action in groundspeed
+    divert_speed_successful,
+
+    --resolution via fallback maneuver in altitude, heading, or groundspeed
+    fallback,
+
+    --resolution via maintaing status quo due to improper configuration/use
+    no_recourse
+};
+
+type classification = enum {
+    --determiniation when the mode under analysis of the next waypoint is not 
+    --withing a NEAR alerting DAIDALUS dectection band
+    safe,
+
+    --determination when the mode under analysis of the next waypoint is 
+    --within a NEAR alerting DAIDALUS dectection band
+    unsafe
+};
+
+type status = enum {
+    --indicative of ownship following waypoints as part of a mission command
+    OnMission,
+
+    --indicative of ownship's well clear volume projected to be violated within
+    --25 seconds
+    InConflict,
+
+    --indicative of ownship needing to divert in an attempt to mitigate the 
+    --projected loss of well clear
+    Divert,
+
+    --indicative of holding the last command issued for the ownship
+    OnHold    
+};
+
+--Abstraction of DAIDALUS response service sending messages
+type response_message_kind = enum{
+    --no message sent
+    None,
+
+    --divert message as heading/speed/altitude
+    divert_hsa,
+
+    --mission command resuming previous mession
+    return_mission_command
+};
+
+(*Abstraction of WellClearViolation message received.  Actual message contains
+  ownship ID and intruder ID's to determine RightofWay vehicle, time to 
+  violation that is used to determine if a threshold to take action has been 
+  met, altitude bands that determine the altitudes that a violation has/will
+  occur, heading bands that determine the heading that a violation has/will
+  occur, and groundspeed bands that determine the speeds that a violation has/will
+  occur. *)
+type detection_message = struct {
+    --abstraction of entity list used to determine RoW
+    RoW_status : bool;
+
+    --abstraction of time to violation list used to determine if action needs 
+    --to be taken
+    action_threshold : bool;
+
+    --abstraction of the DAIDALUS altitude bands
+    altitude_bands : resolution;
+
+    --abstraction of the DAIDALUS heading bands
+    heading_bands : resolution;
+
+    --abstraction of the DAIDALUS groundspeed bands
+    speed_bands : resolution;
+};
+
+(*Abstraction of DAIDALUS response service capturing the next waypoint ownship
+  is heading toward in order to re-route to mission after impending wellclear
+  violation has been safely handled. *)
+type next_waypoint = struct {
+    --abstraction of whether there exists a waypoint to return to
+    isNext : bool;
+
+    --abstaction of checking the alitude of the next waypoint in comparison to
+    --DAIDALUS altitude bands
+    altitude : classification;
+    
+    --abstraction of checking the heading of the next waypoint in comparison to
+    --DAIDALUS heading bands
+    heading : classification;
+
+    --abstraction of checking the ground speed of the next waypoint in 
+    --comparison to DAIDALUS groundspeed bands
+    speed : classification;
+};

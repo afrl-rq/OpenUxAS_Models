@@ -1,0 +1,69 @@
+-- SetDivertState.lus
+include "../common/daidalus_types.lus"
+include "../functions/altitude_resolution.lus"
+include "../functions/heading_resolution.lus"
+include "../functions/speed_resolution.lus"
+
+contract SetDivertStateContract (
+    altitude_bands : resolution;
+    heading_bands : resolution;
+    speed_bands : resolution;
+    )
+    returns 
+    (
+        resolution_quality : quality;
+    );
+
+let
+    guarantee "SetDivertState SDR1.
+    SetDivertState will either return an acceptable altitude divert, an 
+    acceptable heading divert, an acceptable groundspeed divert, a fallback
+    behavior, or a no recourse due to improper configuration/mis call. /n "
+    (
+        (resolution_quality = divert_altitude_successful) or 
+        (resolution_quality = divert_heading_successful) or 
+        (resolution_quality = divert_speed_successful) or
+        (resolution_quality = fallback) or (resolution_quality = no_recourse)
+    );
+tel.
+
+node SetDivertState (
+    altitude_bands : resolution;
+    heading_bands : resolution;
+    speed_bands : resolution
+) returns (resolution_quality : quality);
+(*@contract import SetDivertStateContract(altitude_bands, heading_bands, 
+speed_bands) returns (resolution_quality);*)
+
+var
+    altitude_res : resolution;
+    heading_res : resolution;
+    speed_res : resolution;
+
+let
+    --abstraction of calling altitude_resolution
+    altitude_res = altitude_resolution (altitude_bands);
+    if not (altitude_res = acceptable_action) then
+        --abstraction of calling heading_resolution
+        heading_res = heading_resolution(heading_bands);
+        if not (heading_res = acceptable_action) then 
+            --abstraction of calling speed_resolution
+            speed_res = speed_resolution(speed_bands);
+            resolution_quality = if (speed_res = acceptable_action) then
+                                 divert_speed_successful else (if 
+                                 (speed_res = revert_behavior) then fallback
+                                 else no_recourse);
+        else
+            resolution_quality = divert_heading_successful;
+        fi  
+    else
+        resolution_quality = divert_altitude_successful;
+    fi 
+
+    check (resolution_quality = divert_altitude_successful xor 
+           resolution_quality = divert_heading_successful xor 
+           resolution_quality = divert_speed_successful xor 
+           resolution_quality = fallback xor 
+           resolution_quality = no_recourse);
+
+tel;
